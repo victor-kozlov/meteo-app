@@ -7,13 +7,17 @@ interface WeatherTableProps {
   data: WeatherStats[];
   loading: boolean;
   error: string | null;
+  availableYears: number[];
+  selectedYear: number | null;
+  yearsLoading: boolean;
   onRefresh: () => void;
+  onYearChange: (year: number) => void;
 }
 
-type SortField = 'month_number' | 'total_days_with_data' | 'days_with_rain' | 'total_monthly_rain_mm' | 'rain_percentage';
+type SortField = 'month_number' | 'month_name' | 'total_days_with_data' | 'days_with_rain' | 'total_monthly_rain_mm' | 'rain_percentage';
 type SortDirection = 'asc' | 'desc';
 
-export function WeatherTable({ data, loading, error, onRefresh }: WeatherTableProps) {
+export function WeatherTable({ data, loading, error, availableYears, selectedYear, yearsLoading, onRefresh, onYearChange }: WeatherTableProps) {
   const [sortField, setSortField] = useState<SortField>('month_number');
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
 
@@ -30,10 +34,10 @@ export function WeatherTable({ data, loading, error, onRefresh }: WeatherTablePr
     const aValue = a[sortField];
     const bValue = b[sortField];
     
-    if (typeof aValue === 'string' && typeof bValue === 'string') {
+    if (sortField === 'month_name') {
       return sortDirection === 'asc' 
-        ? aValue.localeCompare(bValue)
-        : bValue.localeCompare(aValue);
+        ? String(aValue).localeCompare(String(bValue))
+        : String(bValue).localeCompare(String(aValue));
     }
     
     const numA = Number(aValue);
@@ -94,7 +98,9 @@ export function WeatherTable({ data, loading, error, onRefresh }: WeatherTablePr
           <div className="text-center">
             <Droplets className="h-12 w-12 text-slate-400 mx-auto mb-4" />
             <h3 className="text-xl font-semibold text-slate-800 mb-2">No Weather Data</h3>
-            <p className="text-slate-600">No weather data available for 2025.</p>
+            <p className="text-slate-600">
+              No weather data available for {selectedYear || 'the selected year'}.
+            </p>
           </div>
         </div>
       </div>
@@ -109,17 +115,46 @@ export function WeatherTable({ data, loading, error, onRefresh }: WeatherTablePr
           <div className="flex items-center">
             <Droplets className="h-6 w-6 text-blue-600 mr-3" />
             <div>
-              <h3 className="text-xl font-bold text-slate-800">Monthly Rainfall Statistics 2025</h3>
+              <h3 className="text-xl font-bold text-slate-800">
+                Monthly Rainfall Statistics {selectedYear || 'Loading...'}
+              </h3>
               <p className="text-sm text-slate-600">Weather data from Meteo GC 7C Estate</p>
             </div>
           </div>
-          <button
-            onClick={onRefresh}
-            className="inline-flex items-center px-3 py-2 bg-white/80 hover:bg-white text-slate-700 rounded-lg font-medium transition-colors duration-200 border border-slate-200"
-          >
-            <RefreshCw className="h-4 w-4 mr-2" />
-            Refresh
-          </button>
+          <div className="flex items-center space-x-3">
+            {/* Year Selector */}
+            <div className="flex items-center">
+              <label htmlFor="year-select" className="text-sm font-medium text-slate-700 mr-2">
+                Year:
+              </label>
+              <select
+                id="year-select"
+                value={selectedYear || ''}
+                onChange={(e) => onYearChange(Number(e.target.value))}
+                disabled={yearsLoading || availableYears.length === 0}
+                className="px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {yearsLoading ? (
+                  <option value="">Loading...</option>
+                ) : availableYears.length === 0 ? (
+                  <option value="">No data</option>
+                ) : (
+                  availableYears.map(year => (
+                    <option key={year} value={year}>
+                      {year}
+                    </option>
+                  ))
+                )}
+              </select>
+            </div>
+            <button
+              onClick={onRefresh}
+              className="inline-flex items-center px-3 py-2 bg-white/80 hover:bg-white text-slate-700 rounded-lg font-medium transition-colors duration-200 border border-slate-200"
+            >
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Refresh
+            </button>
+          </div>
         </div>
       </div>
 

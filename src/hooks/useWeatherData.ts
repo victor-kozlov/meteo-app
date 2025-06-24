@@ -6,29 +6,118 @@ export function useWeatherData() {
   const [data, setData] = useState<WeatherStats[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [availableYears, setAvailableYears] = useState<number[]>([]);
+  const [selectedYear, setSelectedYear] = useState<number | null>(null);
+  const [yearsLoading, setYearsLoading] = useState(true);
+  const [yearsFetched, setYearsFetched] = useState(false);
 
-  const fetchWeatherData = async () => {
+  const fetchAvailableYears = async () => {
+    // Защита от повторных вызовов
+    if (!yearsLoading || yearsFetched) return;
+    
+    try {
+      setYearsFetched(true);
+      console.log('Starting to fetch available years...');
+      
+      // Получаем уникальные года из базы данных более эффективным способом
+      // Используем SQL функцию для извлечения года из timestamp
+      const { data: yearData, error: yearError } = await supabase
+        .rpc('get_available_years');
+
+      if (yearError) {
+        console.log('RPC function not available, falling back to regular query');
+        
+        // Fallback: загружаем данные по частям для получения всех лет
+        const years = new Set<number>();
+        
+        // Проверяем несколько возможных лет (2020-2030)
+        for (let year = 2020; year <= 2030; year++) {
+          const startDate = `${year}-01-01T00:00:00Z`;
+          const endDate = `${year + 1}-01-01T00:00:00Z`;
+          
+          const { data: checkData, error: checkError } = await supabase
+            .from('weather_data')
+            .select('obs_timestamp')
+            .not('obs_timestamp', 'is', null)
+            .gte('obs_timestamp', startDate)
+            .lt('obs_timestamp', endDate)
+            .limit(1);
+          
+          if (!checkError && checkData && checkData.length > 0) {
+            years.add(year);
+            console.log(`Found data for year ${year}`);
+          }
+        }
+        
+        const sortedYears = Array.from(years).sort((a, b) => b - a);
+        console.log('Setting available years:', sortedYears);
+        setAvailableYears(sortedYears);
+        
+        // Устанавливаем текущий год как выбранный по умолчанию, если он есть в данных
+        const currentYear = new Date().getFullYear();
+        if (sortedYears.includes(currentYear)) {
+          setSelectedYear(currentYear);
+          console.log('Selected current year:', currentYear);
+        } else if (sortedYears.length > 0) {
+          setSelectedYear(sortedYears[0]); // Выбираем самый последний год
+          console.log('Selected latest year:', sortedYears[0]);
+        }
+        
+        console.log('Available years (fallback method):', sortedYears);
+      } else if (yearData && yearData.length > 0) {
+        const sortedYears = yearData.sort((a: number, b: number) => b - a);
+        setAvailableYears(sortedYears);
+        
+        // Устанавливаем текущий год как выбранный по умолчанию, если он есть в данных
+        const currentYear = new Date().getFullYear();
+        if (sortedYears.includes(currentYear)) {
+          setSelectedYear(currentYear);
+        } else if (sortedYears.length > 0) {
+          setSelectedYear(sortedYears[0]); // Выбираем самый последний год
+        }
+        
+        console.log('Available years (RPC method):', sortedYears);
+      } else {
+        // Если нет данных, устанавливаем пустой массив
+        setAvailableYears([]);
+        setSelectedYear(null);
+        console.log('No years found in database');
+      }
+    } catch (err) {
+      console.error('Error fetching available years:', err);
+    } finally {
+      setYearsLoading(false);
+    }
+  };
+
+  const fetchWeatherData = async (year?: number) => {
+    const targetYear = year || selectedYear;
+    if (!targetYear) return;
+
     try {
       setLoading(true);
       setError(null);
 
-      console.log('=== FETCHING DATA BY MONTHS ===');
+      console.log(`=== FETCHING DATA FOR YEAR ${targetYear} ===`);
       
-      // Получаем данные по месяцам (чтобы обойти лимит 1000 записей)
+      // Получаем данные по месяцам для выбранного года
       const allRawData = [];
       
-      // Месяцы для загрузки (январь-июнь 2025)
-      const monthsToFetch = [
-        { start: '2025-01-01', end: '2025-02-01', name: 'January' },
-        { start: '2025-02-01', end: '2025-03-01', name: 'February' },
-        { start: '2025-03-01', end: '2025-04-01', name: 'March' },
-        { start: '2025-04-01', end: '2025-05-01', name: 'April' },
-        { start: '2025-05-01', end: '2025-06-01', name: 'May' },
-        { start: '2025-06-01', end: '2025-07-01', name: 'June' }
-      ];
+      // Генерируем месяцы для загрузки для выбранного года
+      const monthsToFetch = [];
+      for (let month = 1; month <= 12; month++) {
+        const startDate = new Date(targetYear, month - 1, 1);
+        const endDate = new Date(targetYear, month, 1);
+        
+        monthsToFetch.push({
+          start: startDate.toISOString().substring(0, 10),
+          end: endDate.toISOString().substring(0, 10),
+          name: startDate.toLocaleString('en-US', { month: 'long' })
+        });
+      }
 
       for (const month of monthsToFetch) {
-        console.log(`Fetching ${month.name}...`);
+        console.log(`Fetching ${month.name} ${targetYear}...`);
         
         const { data: monthData, error: queryError } = await supabase
           .from('weather_data')
@@ -43,10 +132,10 @@ export function useWeatherData() {
         }
 
         if (monthData && monthData.length > 0) {
-          console.log(`${month.name}: ${monthData.length} records`);
+          console.log(`${month.name} ${targetYear}: ${monthData.length} records`);
           allRawData.push(...monthData);
         } else {
-          console.log(`${month.name}: No data`);
+          console.log(`${month.name} ${targetYear}: No data`);
         }
       }
 
@@ -83,26 +172,32 @@ export function useWeatherData() {
       });
       console.log('Days per month:', Object.fromEntries(monthCounts));
 
-      // Initialize monthly data structure
+      // Initialize monthly data structure - only for months that have data
       const monthlyData = new Map<number, {
         days: Set<string>;
         daysWithRain: Set<string>;
         totalRain: number;
       }>();
 
-      // Initialize months 1-12
-      for (let month = 1; month <= 12; month++) {
-        monthlyData.set(month, {
-          days: new Set(),
-          daysWithRain: new Set(),
-          totalRain: 0
-        });
-      }
-
       // Calculate monthly statistics from daily data
       dailyData.forEach((rainAmount, dayKey) => {
         const date = new Date(dayKey + 'T12:00:00Z');
         const month = date.getUTCMonth() + 1;
+        const year = date.getUTCFullYear();
+
+        // Only process data for the target year
+        if (year !== targetYear) {
+          return;
+        }
+
+        // Initialize month data only when we have actual data for it
+        if (!monthlyData.has(month)) {
+          monthlyData.set(month, {
+            days: new Set(),
+            daysWithRain: new Set(),
+            totalRain: 0
+          });
+        }
 
         const monthData = monthlyData.get(month)!;
         monthData.days.add(dayKey);
@@ -125,6 +220,7 @@ export function useWeatherData() {
       monthlyData.forEach((monthData, month) => {
         const totalDays = monthData.days.size;
         
+        // Only add months that actually have data
         if (totalDays > 0) {
           const daysWithRain = monthData.daysWithRain.size;
           const rainPercentage = totalDays > 0 ? Math.round((daysWithRain / totalDays) * 100 * 10) / 10 : 0;
@@ -137,6 +233,10 @@ export function useWeatherData() {
             total_monthly_rain_mm: Math.round(monthData.totalRain * 10) / 10,
             rain_percentage: rainPercentage
           });
+          
+          console.log(`Added ${monthNames[month]} with ${totalDays} days of data`);
+        } else {
+          console.log(`Skipped ${monthNames[month]} - no data (${totalDays} days)`);
         }
       });
 
@@ -153,11 +253,31 @@ export function useWeatherData() {
     }
   };
 
+  const handleYearChange = (year: number) => {
+    setSelectedYear(year);
+    fetchWeatherData(year);
+  };
+
   useEffect(() => {
-    fetchWeatherData();
-    const interval = setInterval(fetchWeatherData, 60 * 60 * 1000);
-    return () => clearInterval(interval);
+    fetchAvailableYears();
   }, []);
 
-  return { data, loading, error, refetch: fetchWeatherData };
+  useEffect(() => {
+    if (selectedYear) {
+      fetchWeatherData(selectedYear);
+      const interval = setInterval(() => fetchWeatherData(selectedYear), 60 * 60 * 1000);
+      return () => clearInterval(interval);
+    }
+  }, [selectedYear]);
+
+  return { 
+    data, 
+    loading, 
+    error, 
+    availableYears,
+    selectedYear,
+    yearsLoading,
+    refetch: () => fetchWeatherData(selectedYear || undefined),
+    onYearChange: handleYearChange
+  };
 }

@@ -8,7 +8,7 @@ import { useWeatherData } from '../hooks/useWeatherData'
 export function DashboardPage() {
   const navigate = useNavigate()
   const { signOut, user } = useAuth()
-  const { data, loading, error, refetch } = useWeatherData()
+  const { data, loading, error, availableYears, selectedYear, yearsLoading, refetch, onYearChange } = useWeatherData()
 
   const handleSignOut = async () => {
     await signOut()
@@ -72,7 +72,11 @@ export function DashboardPage() {
           data={data}
           loading={loading}
           error={error}
+          availableYears={availableYears}
+          selectedYear={selectedYear}
+          yearsLoading={yearsLoading}
           onRefresh={refetch}
+          onYearChange={onYearChange}
         />
       </main>
     </div>
