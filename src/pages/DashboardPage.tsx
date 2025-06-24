@@ -27,7 +27,7 @@ export function DashboardPage() {
                 <Building2 className="h-6 w-6 text-white" />
               </div>
               <div>
-                <h1 className="text-xl font-bold text-slate-800">Meteo GC 7C Estate</h1>
+                <h1 className="text-xl font-bold text-slate-800">Meteo station GC 7C</h1>
                 <p className="text-sm text-slate-600">Weather Monitoring System</p>
               </div>
             </div>
@@ -60,7 +60,7 @@ export function DashboardPage() {
               <div>
                 <h2 className="text-4xl font-bold text-slate-800">Weather Dashboard</h2>
                 <p className="text-slate-600 text-lg mt-2">
-                  Monitor rainfall patterns and weather statistics for Meteo GC 7C Estate
+                  Monitor rainfall patterns and weather statistics
                 </p>
               </div>
             </div>
