@@ -1,6 +1,12 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
-import { WeatherStats } from '../types/weather';
+import { WeatherStats, YearSummary, SunSummary } from '../types/weather';
+import {
+  SUN_RADIATION_THRESHOLD,
+  SUN_ILLUMINANCE_THRESHOLD,
+  SUN_UV_INDEX_THRESHOLD,
+  SUNNY_DAY_HOURS_THRESHOLD,
+} from '../constants/weather';
 
 export function useWeatherData() {
   const [data, setData] = useState<WeatherStats[]>([]);
@@ -10,6 +16,8 @@ export function useWeatherData() {
   const [selectedYear, setSelectedYear] = useState<number | null>(null);
   const [yearsLoading, setYearsLoading] = useState(true);
   const [yearsFetched, setYearsFetched] = useState(false);
+  const [yearSummary, setYearSummary] = useState<YearSummary>({ lastRainDate: null, lastRainAmountMm: 0 });
+  const [sunSummary, setSunSummary] = useState<SunSummary>({ sunnyDays: 0, totalSunHours: 0, lastSunnyDayDate: null, lastSunnyDayHours: 0 });
 
   const fetchAvailableYears = async () => {
     // Защита от повторных вызовов
@@ -121,7 +129,7 @@ export function useWeatherData() {
         
         const { data: monthData, error: queryError } = await supabase
           .from('weather_data')
-          .select('obs_timestamp, local_day_rain_accumulation')
+          .select('obs_timestamp, local_day_rain_accumulation, illuminance, uv, solar_radiation')
           .not('obs_timestamp', 'is', null)
           .gte('obs_timestamp', month.start + 'T00:00:00Z')
           .lt('obs_timestamp', month.end + 'T00:00:00Z')
@@ -143,6 +151,7 @@ export function useWeatherData() {
 
       if (allRawData.length === 0) {
         setData([]);
+        setSunSummary({ sunnyDays: 0, totalSunHours: 0, lastSunnyDayDate: null, lastSunnyDayHours: 0 });
         return;
       }
 
@@ -163,6 +172,52 @@ export function useWeatherData() {
       });
 
       console.log('Total daily entries:', dailyData.size);
+
+      // Compute last rain date and amount for the selected year
+      let lastRainDate: string | null = null;
+      let lastRainAmountMm = 0;
+      dailyData.forEach((rainAmount, dayKey) => {
+        if (rainAmount > 0 && (!lastRainDate || dayKey > lastRainDate)) {
+          lastRainDate = dayKey;
+          lastRainAmountMm = Math.round(rainAmount * 10) / 10;
+        }
+      });
+      setYearSummary({ lastRainDate, lastRainAmountMm });
+
+      // Compute daily sun hours from raw hourly rows
+      const dailySunHours = new Map<string, number>();
+      allRawData.forEach(row => {
+        if (!row.obs_timestamp) return;
+        const date = new Date(row.obs_timestamp);
+        if (date.getUTCFullYear() !== targetYear) return;
+        const dayKey = date.toISOString().substring(0, 10);
+
+        const solarRad = Number(row.solar_radiation) || 0;
+        const illum = Number(row.illuminance) || 0;
+        const uv = Number(row.uv) || 0;
+        const isSunHour =
+          solarRad > SUN_RADIATION_THRESHOLD &&
+          (illum > SUN_ILLUMINANCE_THRESHOLD || uv >= SUN_UV_INDEX_THRESHOLD);
+
+        dailySunHours.set(dayKey, (dailySunHours.get(dayKey) ?? 0) + (isSunHour ? 1 : 0));
+      });
+
+      // Aggregate sun stats for the year
+      let sunnyDays = 0;
+      let totalSunHours = 0;
+      let lastSunnyDayDate: string | null = null;
+      let lastSunnyDayHours = 0;
+      dailySunHours.forEach((hours, dayKey) => {
+        totalSunHours += hours;
+        if (hours >= SUNNY_DAY_HOURS_THRESHOLD) {
+          sunnyDays++;
+          if (!lastSunnyDayDate || dayKey > lastSunnyDayDate) {
+            lastSunnyDayDate = dayKey;
+            lastSunnyDayHours = hours;
+          }
+        }
+      });
+      setSunSummary({ sunnyDays, totalSunHours, lastSunnyDayDate, lastSunnyDayHours });
 
       // Группировка по месяцам для проверки
       const monthCounts = new Map();
@@ -270,13 +325,15 @@ export function useWeatherData() {
     }
   }, [selectedYear]);
 
-  return { 
-    data, 
-    loading, 
-    error, 
+  return {
+    data,
+    loading,
+    error,
     availableYears,
     selectedYear,
     yearsLoading,
+    yearSummary,
+    sunSummary,
     refetch: () => fetchWeatherData(selectedYear || undefined),
     onYearChange: handleYearChange
   };

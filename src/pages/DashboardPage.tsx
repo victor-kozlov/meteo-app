@@ -3,12 +3,13 @@ import { useNavigate } from 'react-router-dom'
 import { Building2, LogOut, User, Droplets } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import { WeatherTable } from '../components/WeatherTable'
+import { SunlightStats } from '../components/SunlightStats'
 import { useWeatherData } from '../hooks/useWeatherData'
 
 export function DashboardPage() {
   const navigate = useNavigate()
   const { signOut, user } = useAuth()
-  const { data, loading, error, availableYears, selectedYear, yearsLoading, refetch, onYearChange } = useWeatherData()
+  const { data, loading, error, availableYears, selectedYear, yearsLoading, yearSummary, sunSummary, refetch, onYearChange } = useWeatherData()
 
   const handleSignOut = async () => {
     await signOut()
@@ -68,16 +69,26 @@ export function DashboardPage() {
         </div>
 
         {/* Weather Data Table */}
-        <WeatherTable 
+        <WeatherTable
           data={data}
           loading={loading}
           error={error}
           availableYears={availableYears}
           selectedYear={selectedYear}
           yearsLoading={yearsLoading}
+          yearSummary={yearSummary}
           onRefresh={refetch}
           onYearChange={onYearChange}
         />
+
+        {/* Sunlight Exposure Stats */}
+        <div className="mt-8">
+          <SunlightStats
+            sunSummary={sunSummary}
+            selectedYear={selectedYear}
+            loading={loading}
+          />
+        </div>
       </main>
     </div>
   )

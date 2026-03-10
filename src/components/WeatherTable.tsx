@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { ChevronUp, ChevronDown, RefreshCw, AlertCircle, Droplets, Calendar, TrendingUp } from 'lucide-react';
-import { WeatherStats } from '../types/weather';
+import { ChevronUp, ChevronDown, RefreshCw, AlertCircle, Droplets, Calendar, TrendingUp, CloudRain } from 'lucide-react';
+import { WeatherStats, YearSummary } from '../types/weather';
 import { LoadingSpinner } from './LoadingSpinner';
 
 interface WeatherTableProps {
@@ -10,14 +10,23 @@ interface WeatherTableProps {
   availableYears: number[];
   selectedYear: number | null;
   yearsLoading: boolean;
+  yearSummary: YearSummary;
   onRefresh: () => void;
   onYearChange: (year: number) => void;
+}
+
+function formatLastRainDate(dateStr: string | null): string {
+  if (!dateStr) return '—';
+  return new Date(dateStr + 'T12:00:00Z').toLocaleDateString('en-US', {
+    day: 'numeric',
+    month: 'long',
+  });
 }
 
 type SortField = 'month_number' | 'month_name' | 'total_days_with_data' | 'days_with_rain' | 'total_monthly_rain_mm' | 'rain_percentage';
 type SortDirection = 'asc' | 'desc';
 
-export function WeatherTable({ data, loading, error, availableYears, selectedYear, yearsLoading, onRefresh, onYearChange }: WeatherTableProps) {
+export function WeatherTable({ data, loading, error, availableYears, selectedYear, yearsLoading, yearSummary, onRefresh, onYearChange }: WeatherTableProps) {
   const [sortField, setSortField] = useState<SortField>('month_number');
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
 
@@ -160,7 +169,7 @@ export function WeatherTable({ data, loading, error, availableYears, selectedYea
 
       {/* Summary Stats */}
       <div className="px-6 py-4 bg-gradient-to-r from-slate-50 to-blue-50 border-b border-slate-200/50">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
           <div className="flex items-center">
             <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center mr-3">
               <Droplets className="h-5 w-5 text-blue-600" />
@@ -187,6 +196,26 @@ export function WeatherTable({ data, loading, error, availableYears, selectedYea
               <p className="text-sm text-slate-600">Rain Frequency</p>
               <p className="text-lg font-bold text-slate-800">
                 {totalDaysWithData > 0 ? ((totalDaysWithRain / totalDaysWithData) * 100).toFixed(1) : 0}%
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center">
+            <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center mr-3">
+              <CloudRain className="h-5 w-5 text-purple-600" />
+            </div>
+            <div>
+              <p className="text-sm text-slate-600">Last Rain Date</p>
+              <p className="text-lg font-bold text-slate-800">{formatLastRainDate(yearSummary.lastRainDate)}</p>
+            </div>
+          </div>
+          <div className="flex items-center">
+            <div className="w-10 h-10 bg-cyan-100 rounded-lg flex items-center justify-center mr-3">
+              <Droplets className="h-5 w-5 text-cyan-600" />
+            </div>
+            <div>
+              <p className="text-sm text-slate-600">Rain on Last Day</p>
+              <p className="text-lg font-bold text-slate-800">
+                {yearSummary.lastRainDate ? `${yearSummary.lastRainAmountMm.toFixed(1)} mm` : '0 mm'}
               </p>
             </div>
           </div>
