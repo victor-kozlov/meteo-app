@@ -184,22 +184,37 @@ export function useWeatherData() {
       });
       setYearSummary({ lastRainDate, lastRainAmountMm });
 
-      // Compute daily sun hours from raw hourly rows
-      const dailySunHours = new Map<string, number>();
+      // Compute daily sun hours from raw rows.
+      // Group by unique UTC hour — an hour is "sunny" if at least one measurement in it
+      // crosses the threshold. This avoids over-counting sub-hourly observations.
+      const dailySunnyHourSets = new Map<string, Set<string>>();
       allRawData.forEach(row => {
         if (!row.obs_timestamp) return;
         const date = new Date(row.obs_timestamp);
         if (date.getUTCFullYear() !== targetYear) return;
         const dayKey = date.toISOString().substring(0, 10);
+        const hourKey = date.toISOString().substring(0, 13); // 'YYYY-MM-DDTHH'
+
+        if (!dailySunnyHourSets.has(dayKey)) {
+          dailySunnyHourSets.set(dayKey, new Set());
+        }
 
         const solarRad = Number(row.solar_radiation) || 0;
         const illum = Number(row.illuminance) || 0;
         const uv = Number(row.uv) || 0;
-        const isSunHour =
+        const isSunny =
           solarRad > SUN_RADIATION_THRESHOLD &&
           (illum > SUN_ILLUMINANCE_THRESHOLD || uv >= SUN_UV_INDEX_THRESHOLD);
 
-        dailySunHours.set(dayKey, (dailySunHours.get(dayKey) ?? 0) + (isSunHour ? 1 : 0));
+        if (isSunny) {
+          dailySunnyHourSets.get(dayKey)!.add(hourKey);
+        }
+      });
+
+      // Convert to Map<dayKey, sunHoursCount>
+      const dailySunHours = new Map<string, number>();
+      dailySunnyHourSets.forEach((hourSet, dayKey) => {
+        dailySunHours.set(dayKey, hourSet.size);
       });
 
       // Aggregate sun stats for the year

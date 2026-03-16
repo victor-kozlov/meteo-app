@@ -4,6 +4,8 @@ import { Building2, LogOut, User, Droplets } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import { WeatherTable } from '../components/WeatherTable'
 import { SunlightStats } from '../components/SunlightStats'
+import { TemperatureSection } from '../components/TemperatureSection'
+import { WeatherTableSection } from '../components/WeatherTableSection'
 import { useWeatherData } from '../hooks/useWeatherData'
 
 export function DashboardPage() {
@@ -88,6 +90,16 @@ export function DashboardPage() {
             selectedYear={selectedYear}
             loading={loading}
           />
+        </div>
+
+        {/* Temperature Rolling Graph */}
+        <div className="mt-8">
+          <TemperatureSection />
+        </div>
+
+        {/* 14-day Weather Summary Table */}
+        <div className="mt-8">
+          <WeatherTableSection />
         </div>
       </main>
     </div>
