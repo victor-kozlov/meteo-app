@@ -1,5 +1,5 @@
 import React from 'react';
-import { Sun, Clock, Calendar, Sunrise } from 'lucide-react';
+import { Sun, TrendingUp, Clock, Calendar, Sunrise } from 'lucide-react';
 import { SunSummary } from '../types/weather';
 
 interface SunlightStatsProps {
@@ -34,7 +34,7 @@ export function SunlightStats({ sunSummary, selectedYear, loading }: SunlightSta
 
       {/* KPI tiles */}
       <div className="px-6 py-4 bg-gradient-to-r from-amber-50/60 to-yellow-50/60">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
           <div className="flex items-center">
             <div className="w-10 h-10 bg-amber-100 rounded-lg flex items-center justify-center mr-3">
               <Sun className="h-5 w-5 text-amber-500" />
@@ -43,6 +43,18 @@ export function SunlightStats({ sunSummary, selectedYear, loading }: SunlightSta
               <p className="text-sm text-slate-600">Sunny Days</p>
               <p className="text-lg font-bold text-slate-800">
                 {sunSummary.sunnyDays > 0 ? sunSummary.sunnyDays : '—'}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center">
+            <div className="w-10 h-10 bg-amber-100 rounded-lg flex items-center justify-center mr-3">
+              <TrendingUp className="h-5 w-5 text-amber-600" />
+            </div>
+            <div>
+              <p className="text-sm text-slate-600">Sunny Day %</p>
+              <p className="text-lg font-bold text-slate-800">
+                {sunSummary.sunnyDayPercentage !== null ? `${sunSummary.sunnyDayPercentage}%` : '—'}
               </p>
             </div>
           </div>

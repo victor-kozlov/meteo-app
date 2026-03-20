@@ -17,7 +17,7 @@ export function useWeatherData() {
   const [yearsLoading, setYearsLoading] = useState(true);
   const [yearsFetched, setYearsFetched] = useState(false);
   const [yearSummary, setYearSummary] = useState<YearSummary>({ lastRainDate: null, lastRainAmountMm: 0 });
-  const [sunSummary, setSunSummary] = useState<SunSummary>({ sunnyDays: 0, totalSunHours: 0, lastSunnyDayDate: null, lastSunnyDayHours: 0 });
+  const [sunSummary, setSunSummary] = useState<SunSummary>({ sunnyDays: 0, totalSunHours: 0, lastSunnyDayDate: null, lastSunnyDayHours: 0, sunnyDayPercentage: null });
 
   const fetchAvailableYears = async () => {
     // Защита от повторных вызовов
@@ -151,7 +151,7 @@ export function useWeatherData() {
 
       if (allRawData.length === 0) {
         setData([]);
-        setSunSummary({ sunnyDays: 0, totalSunHours: 0, lastSunnyDayDate: null, lastSunnyDayHours: 0 });
+        setSunSummary({ sunnyDays: 0, totalSunHours: 0, lastSunnyDayDate: null, lastSunnyDayHours: 0, sunnyDayPercentage: null });
         return;
       }
 
@@ -232,7 +232,30 @@ export function useWeatherData() {
           }
         }
       });
-      setSunSummary({ sunnyDays, totalSunHours, lastSunnyDayDate, lastSunnyDayHours });
+      // Compute total days passed in the selected year (up to yesterday, exclusive of today)
+      const currentYear = new Date().getFullYear();
+      let totalDaysPassedThisYear: number;
+      if (targetYear < currentYear) {
+        // Full year has elapsed — use actual year length
+        const isLeap = new Date(targetYear, 1, 29).getMonth() === 1;
+        totalDaysPassedThisYear = isLeap ? 366 : 365;
+      } else if (targetYear === currentYear) {
+        const jan1 = new Date(targetYear, 0, 1);
+        jan1.setHours(0, 0, 0, 0);
+        const todayMidnight = new Date();
+        todayMidnight.setHours(0, 0, 0, 0);
+        totalDaysPassedThisYear = Math.max(
+          0,
+          Math.floor((todayMidnight.getTime() - jan1.getTime()) / (24 * 60 * 60 * 1000))
+        );
+      } else {
+        totalDaysPassedThisYear = 0;
+      }
+      const sunnyDayPercentage =
+        totalDaysPassedThisYear > 0
+          ? Math.round((sunnyDays / totalDaysPassedThisYear) * 100)
+          : null;
+      setSunSummary({ sunnyDays, totalSunHours, lastSunnyDayDate, lastSunnyDayHours, sunnyDayPercentage });
 
       // Группировка по месяцам для проверки
       const monthCounts = new Map();

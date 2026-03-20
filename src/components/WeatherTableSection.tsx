@@ -40,12 +40,12 @@ export function WeatherTableSection() {
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="bg-slate-100/80 border-b border-slate-200">
-                <th className="text-left py-2.5 px-3 font-semibold text-slate-600 rounded-tl-lg">Date</th>
-                <th className="text-center py-2.5 px-3 font-semibold text-blue-600">Min Temp</th>
-                <th className="text-center py-2.5 px-3 font-semibold text-red-500">Max Temp</th>
-                <th className="text-center py-2.5 px-3 font-semibold text-slate-600">Rainfall</th>
-                <th className="text-center py-2.5 px-3 font-semibold text-slate-600 rounded-tr-lg">Sun Hours</th>
+              <tr className="bg-gradient-to-r from-slate-200/90 to-slate-150 border-b-2 border-slate-300">
+                <th className="text-left py-3 px-3 font-semibold text-slate-700 rounded-tl-lg">Date</th>
+                <th className="text-center py-3 px-3 font-semibold text-blue-700">Min Temp</th>
+                <th className="text-center py-3 px-3 font-semibold text-red-600">Max Temp</th>
+                <th className="text-center py-3 px-3 font-semibold text-slate-700">Rainfall</th>
+                <th className="text-center py-3 px-3 font-semibold text-slate-700 rounded-tr-lg">Sun Hours</th>
               </tr>
             </thead>
             <tbody>

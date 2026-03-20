@@ -20,4 +20,5 @@ export interface SunSummary {
   totalSunHours: number;
   lastSunnyDayDate: string | null;  // 'YYYY-MM-DD', or null if no sunny days
   lastSunnyDayHours: number;
+  sunnyDayPercentage: number | null;
 }
