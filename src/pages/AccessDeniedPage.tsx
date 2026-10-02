@@ -1,6 +1,6 @@
 import React from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ShieldX, ArrowLeft, Building2 } from 'lucide-react'
+import { ShieldX, ArrowLeft, CloudRain } from 'lucide-react'
 
 export function AccessDeniedPage() {
   const navigate = useNavigate()
@@ -21,7 +21,7 @@ export function AccessDeniedPage() {
             <ShieldX className="h-8 w-8 text-white" />
           </div>
           <div className="flex items-center justify-center mb-4">
-            <Building2 className="h-6 w-6 text-slate-600 mr-2" />
+            <CloudRain className="h-6 w-6 text-slate-600 mr-2" />
             <span className="text-lg font-semibold text-slate-700">Meteo GC 7C Estate</span>
           </div>
         </div>

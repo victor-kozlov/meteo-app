@@ -1,6 +1,6 @@
 import React from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Building2, LogOut, User, Droplets } from 'lucide-react'
+import { CloudRain, LogOut, User, Droplets } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import { WeatherTable } from '../components/WeatherTable'
 import { SunlightStats } from '../components/SunlightStats'
@@ -23,14 +23,14 @@ export function DashboardPage() {
       {/* Navigation Header */}
       <nav className="bg-white/80 backdrop-blur-sm border-b border-slate-200/50 sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
+          <div className="flex justify-between items-center gap-3 min-h-16 py-2">
             {/* Logo and Title */}
-            <div className="flex items-center">
-              <div className="flex items-center justify-center w-10 h-10 bg-gradient-to-br from-blue-600 to-blue-700 rounded-xl shadow-md mr-3">
-                <Building2 className="h-6 w-6 text-white" />
+            <div className="flex items-center min-w-0">
+              <div className="flex items-center justify-center flex-shrink-0 w-10 h-10 bg-gradient-to-br from-blue-600 to-blue-700 rounded-xl shadow-md mr-3">
+                <CloudRain className="h-6 w-6 text-white" />
               </div>
-              <div>
-                <h1 className="text-xl font-bold text-slate-800">Meteo station GC 7C</h1>
+              <div className="min-w-0">
+                <h1 className="text-lg sm:text-xl font-bold text-slate-800">Meteo station GC 7C</h1>
                 <p className="text-sm text-slate-600">Weather Monitoring System</p>
               </div>
             </div>
@@ -41,12 +41,14 @@ export function DashboardPage() {
                 <User className="h-4 w-4 mr-2" />
                 {user?.email}
               </div>
+              {/* Icon-only 40x40 button on phones (keeps the header on one line), full label from sm up */}
               <button
                 onClick={handleSignOut}
-                className="inline-flex items-center px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-lg font-medium transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-slate-500/20"
+                aria-label="Sign Out"
+                className="inline-flex items-center justify-center flex-shrink-0 whitespace-nowrap h-10 w-10 sm:h-auto sm:w-auto sm:px-4 sm:py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-lg font-medium transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-slate-500/20"
               >
-                <LogOut className="h-4 w-4 mr-2" />
-                Sign Out
+                <LogOut className="h-4 w-4 sm:mr-2" />
+                <span className="hidden sm:inline">Sign Out</span>
               </button>
             </div>
           </div>

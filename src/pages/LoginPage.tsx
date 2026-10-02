@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Building2, User, Lock, LogIn, X } from 'lucide-react'
+import { CloudRain, User, Lock, LogIn, X } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import { LoadingSpinner } from '../components/LoadingSpinner'
 
@@ -79,7 +79,7 @@ export function LoginPage() {
         {/* Header */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-blue-600 to-blue-700 rounded-2xl shadow-lg mb-6 transform hover:scale-105 transition-transform duration-200">
-            <Building2 className="h-8 w-8 text-white" />
+            <CloudRain className="h-8 w-8 text-white" />
           </div>
           <h1 className="text-3xl font-bold text-slate-800 mb-2">
             Meteo GC 7C Estate
