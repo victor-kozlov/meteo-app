@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { stationToday, addDays, wallDay } from '../lib/stationTime';
+import { useRefreshOnResume } from './useRefreshOnResume';
 
 export interface DailyTemperature {
   date: string;      // 'YYYY-MM-DD'
@@ -18,10 +19,14 @@ export function useTemperatureData() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchData = async () => {
+  // `silent` = background refresh after the app was resumed: keep the current data on screen
+  // (no spinner / scroll jump) and keep it if the refresh fails.
+  const fetchData = async (silent = false) => {
     try {
-      setLoading(true);
-      setError(null);
+      if (!silent) {
+        setLoading(true);
+        setError(null);
+      }
 
       const todayStr = stationToday();
       const fromStr = addDays(todayStr, -13);
@@ -60,18 +65,25 @@ export function useTemperatureData() {
         .sort((a, b) => a.date.localeCompare(b.date));
 
       setData(result);
+      setError(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch temperature data');
+      if (silent) {
+        console.warn('Background refresh failed:', err);
+      } else {
+        setError(err instanceof Error ? err.message : 'Failed to fetch temperature data');
+      }
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
 
   useEffect(() => {
     fetchData();
-    const interval = setInterval(fetchData, 60 * 60 * 1000);
+    const interval = setInterval(() => fetchData(), 60 * 60 * 1000);
     return () => clearInterval(interval);
   }, []);
+
+  useRefreshOnResume(() => fetchData(true));
 
   return { data, loading, error };
 }

@@ -7,6 +7,7 @@ import {
 } from '../constants/weather';
 import { stationToday, addDays, wallDay, wallHour } from '../lib/stationTime';
 import { summarizeRecent, RecentSummary } from '../lib/recentSummary';
+import { useRefreshOnResume } from './useRefreshOnResume';
 
 export interface DailyWeatherRow {
   date: string;         // 'YYYY-MM-DD'
@@ -32,10 +33,14 @@ export function useWeatherTableData() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchData = async () => {
+  // `silent` = background refresh after the app was resumed: keep the current data on screen
+  // (no spinner / scroll jump) and keep it if the refresh fails.
+  const fetchData = async (silent = false) => {
     try {
-      setLoading(true);
-      setError(null);
+      if (!silent) {
+        setLoading(true);
+        setError(null);
+      }
 
       const todayStr = stationToday();
       const fromStr = addDays(todayStr, -13);
@@ -128,18 +133,25 @@ export function useWeatherTableData() {
 
       setData(result);
       setSummary(summarizeRecent(rows as RawRow[], todayStr, lastRainDate));
+      setError(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch weather table data');
+      if (silent) {
+        console.warn('Background refresh failed:', err);
+      } else {
+        setError(err instanceof Error ? err.message : 'Failed to fetch weather table data');
+      }
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
 
   useEffect(() => {
     fetchData();
-    const interval = setInterval(fetchData, 60 * 60 * 1000);
+    const interval = setInterval(() => fetchData(), 60 * 60 * 1000);
     return () => clearInterval(interval);
   }, []);
+
+  useRefreshOnResume(() => fetchData(true));
 
   return { data, summary, loading, error };
 }

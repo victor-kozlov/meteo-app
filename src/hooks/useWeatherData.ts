@@ -8,6 +8,7 @@ import {
   SUNNY_DAY_HOURS_THRESHOLD,
 } from '../constants/weather';
 import { wallDay, wallHour } from '../lib/stationTime';
+import { useRefreshOnResume } from './useRefreshOnResume';
 
 export function useWeatherData() {
   const [data, setData] = useState<WeatherStats[]>([]);
@@ -99,13 +100,17 @@ export function useWeatherData() {
     }
   };
 
-  const fetchWeatherData = async (year?: number) => {
+  // `silent` = background refresh after the app was resumed: keep the current data on screen
+  // (no spinner / scroll jump) and keep it if the refresh fails.
+  const fetchWeatherData = async (year?: number, silent = false) => {
     const targetYear = year || selectedYear;
     if (!targetYear) return;
 
     try {
-      setLoading(true);
-      setError(null);
+      if (!silent) {
+        setLoading(true);
+        setError(null);
+      }
 
       console.log(`=== FETCHING DATA FOR YEAR ${targetYear} ===`);
       
@@ -339,12 +344,15 @@ export function useWeatherData() {
 
       console.log('Final formatted data:', formattedData);
       setData(formattedData);
+      setError(null);
 
     } catch (err) {
       console.error('Error fetching weather data:', err);
-      setError(err instanceof Error ? err.message : 'Failed to fetch weather data');
+      if (!silent) {
+        setError(err instanceof Error ? err.message : 'Failed to fetch weather data');
+      }
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
 
@@ -364,6 +372,10 @@ export function useWeatherData() {
       return () => clearInterval(interval);
     }
   }, [selectedYear]);
+
+  useRefreshOnResume(() => {
+    if (selectedYear) fetchWeatherData(selectedYear, true);
+  });
 
   return {
     data,
