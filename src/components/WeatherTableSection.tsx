@@ -1,5 +1,5 @@
 import React from 'react';
-import { CalendarDays } from 'lucide-react';
+import { CalendarDays, CalendarClock, CloudRain, Droplets } from 'lucide-react';
 import { useWeatherTableData } from '../hooks/useWeatherTableData';
 import { stationToday } from '../lib/stationTime';
 
@@ -11,8 +11,33 @@ function formatDate(dateStr: string): string {
   });
 }
 
+function formatDaysSince(days: number | null): string {
+  if (days === null) return '—';
+  if (days === 0) return 'Today';
+  return `${days} ${days === 1 ? 'day' : 'days'}`;
+}
+
+function StatTile({ icon, iconBg, label, value }: {
+  icon: React.ReactNode;
+  iconBg: string;
+  label: string;
+  value: string;
+}) {
+  return (
+    <div className="flex items-center">
+      <div className={`w-10 h-10 ${iconBg} rounded-lg flex items-center justify-center mr-3`}>
+        {icon}
+      </div>
+      <div>
+        <p className="text-sm text-slate-600">{label}</p>
+        <p className="text-lg font-bold text-slate-800">{value}</p>
+      </div>
+    </div>
+  );
+}
+
 export function WeatherTableSection() {
-  const { data, loading, error } = useWeatherTableData();
+  const { data, summary, loading, error } = useWeatherTableData();
   const today = stationToday();
 
   return (
@@ -34,6 +59,29 @@ export function WeatherTableSection() {
       {!loading && !error && data.length === 0 && (
         <div className="text-slate-400 text-sm py-8 text-center">
           No data available for the last 14 days
+        </div>
+      )}
+
+      {!loading && !error && data.length > 0 && summary && (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 px-4 py-4 mb-5 rounded-xl bg-gradient-to-r from-slate-50 to-blue-50 border border-slate-200/50">
+          <StatTile
+            icon={<CloudRain className="h-5 w-5 text-blue-600" />}
+            iconBg="bg-blue-100"
+            label="Rainfall, Last 7 Days"
+            value={`${summary.rain7dMm.toFixed(1)} mm`}
+          />
+          <StatTile
+            icon={<CalendarClock className="h-5 w-5 text-purple-600" />}
+            iconBg="bg-purple-100"
+            label="Days Since Last Rain"
+            value={formatDaysSince(summary.daysSinceRain)}
+          />
+          <StatTile
+            icon={<Droplets className="h-5 w-5 text-cyan-600" />}
+            iconBg="bg-cyan-100"
+            label="Avg Humidity, Last 7 Days"
+            value={summary.avgHumidity7d === null ? '—' : `${Math.round(summary.avgHumidity7d)}%`}
+          />
         </div>
       )}
 
