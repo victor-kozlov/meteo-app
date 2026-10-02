@@ -1,6 +1,7 @@
 import React from 'react';
 import { CalendarDays } from 'lucide-react';
 import { useWeatherTableData } from '../hooks/useWeatherTableData';
+import { stationToday } from '../lib/stationTime';
 
 function formatDate(dateStr: string): string {
   return new Date(dateStr + 'T12:00:00Z').toLocaleDateString('en-US', {
@@ -12,7 +13,7 @@ function formatDate(dateStr: string): string {
 
 export function WeatherTableSection() {
   const { data, loading, error } = useWeatherTableData();
-  const today = new Date().toISOString().substring(0, 10);
+  const today = stationToday();
 
   return (
     <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-6">

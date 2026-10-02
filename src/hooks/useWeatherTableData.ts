@@ -5,6 +5,7 @@ import {
   SUN_ILLUMINANCE_THRESHOLD,
   SUN_UV_INDEX_THRESHOLD,
 } from '../constants/weather';
+import { stationToday, addDays, wallDay, wallHour } from '../lib/stationTime';
 
 export interface DailyWeatherRow {
   date: string;         // 'YYYY-MM-DD'
@@ -33,12 +34,8 @@ export function useWeatherTableData() {
       setLoading(true);
       setError(null);
 
-      const today = new Date();
-      const todayStr = today.toISOString().substring(0, 10);
-
-      const from = new Date(today);
-      from.setDate(from.getDate() - 13);
-      const fromStr = from.toISOString().substring(0, 10);
+      const todayStr = stationToday();
+      const fromStr = addDays(todayStr, -13);
 
       const { data: rows, error: queryError } = await supabase
         .from('weather_data')
@@ -62,9 +59,8 @@ export function useWeatherTableData() {
       (rows as RawRow[]).forEach(row => {
         if (!row.obs_timestamp) return;
 
-        const date = new Date(row.obs_timestamp);
-        const dayKey = date.toISOString().substring(0, 10);
-        const hourKey = date.toISOString().substring(0, 13); // 'YYYY-MM-DDTHH'
+        const dayKey = wallDay(row.obs_timestamp);
+        const hourKey = wallHour(row.obs_timestamp); // 'YYYY-MM-DDTHH'
 
         if (!dailyMap.has(dayKey)) {
           dailyMap.set(dayKey, {

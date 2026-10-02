@@ -7,6 +7,7 @@ import {
   SUN_UV_INDEX_THRESHOLD,
   SUNNY_DAY_HOURS_THRESHOLD,
 } from '../constants/weather';
+import { wallDay, wallHour } from '../lib/stationTime';
 
 export function useWeatherData() {
   const [data, setData] = useState<WeatherStats[]>([]);
@@ -113,14 +114,17 @@ export function useWeatherData() {
       
       // Генерируем месяцы для загрузки для выбранного года
       const monthsToFetch = [];
+      // Boundaries are plain 'YYYY-MM-DD' strings: obs_timestamp is a wall-clock value without a
+      // time zone, so going through Date/toISOString() would shift them by the browser's UTC offset.
+      const pad = (n: number) => String(n).padStart(2, '0');
       for (let month = 1; month <= 12; month++) {
-        const startDate = new Date(targetYear, month - 1, 1);
-        const endDate = new Date(targetYear, month, 1);
-        
+        const nextYear = month === 12 ? targetYear + 1 : targetYear;
+        const nextMonth = month === 12 ? 1 : month + 1;
+
         monthsToFetch.push({
-          start: startDate.toISOString().substring(0, 10),
-          end: endDate.toISOString().substring(0, 10),
-          name: startDate.toLocaleString('en-US', { month: 'long' })
+          start: `${targetYear}-${pad(month)}-01`,
+          end: `${nextYear}-${pad(nextMonth)}-01`,
+          name: new Date(Date.UTC(targetYear, month - 1, 1)).toLocaleString('en-US', { month: 'long', timeZone: 'UTC' })
         });
       }
 
@@ -161,8 +165,7 @@ export function useWeatherData() {
       allRawData.forEach(row => {
         if (!row.obs_timestamp) return;
         
-        const date = new Date(row.obs_timestamp);
-        const dayKey = date.toISOString().substring(0, 10); // YYYY-MM-DD
+        const dayKey = wallDay(row.obs_timestamp); // YYYY-MM-DD
         const rainAmount = Number(row.local_day_rain_accumulation) || 0;
 
         // Get maximum rain accumulation per day
@@ -185,15 +188,14 @@ export function useWeatherData() {
       setYearSummary({ lastRainDate, lastRainAmountMm });
 
       // Compute daily sun hours from raw rows.
-      // Group by unique UTC hour — an hour is "sunny" if at least one measurement in it
+      // Group by unique station-local hour — an hour is "sunny" if at least one measurement in it
       // crosses the threshold. This avoids over-counting sub-hourly observations.
       const dailySunnyHourSets = new Map<string, Set<string>>();
       allRawData.forEach(row => {
         if (!row.obs_timestamp) return;
-        const date = new Date(row.obs_timestamp);
-        if (date.getUTCFullYear() !== targetYear) return;
-        const dayKey = date.toISOString().substring(0, 10);
-        const hourKey = date.toISOString().substring(0, 13); // 'YYYY-MM-DDTHH'
+        const dayKey = wallDay(row.obs_timestamp);
+        if (Number(dayKey.substring(0, 4)) !== targetYear) return;
+        const hourKey = wallHour(row.obs_timestamp); // 'YYYY-MM-DDTHH'
 
         if (!dailySunnyHourSets.has(dayKey)) {
           dailySunnyHourSets.set(dayKey, new Set());

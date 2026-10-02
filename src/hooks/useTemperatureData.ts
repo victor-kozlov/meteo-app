@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
+import { stationToday, addDays, wallDay } from '../lib/stationTime';
 
 export interface DailyTemperature {
   date: string;      // 'YYYY-MM-DD'
@@ -22,12 +23,8 @@ export function useTemperatureData() {
       setLoading(true);
       setError(null);
 
-      const today = new Date();
-      const todayStr = today.toISOString().substring(0, 10);
-
-      const from = new Date(today);
-      from.setDate(from.getDate() - 13);
-      const fromStr = from.toISOString().substring(0, 10);
+      const todayStr = stationToday();
+      const fromStr = addDays(todayStr, -13);
 
       const { data: rows, error: queryError } = await supabase
         .from('weather_data')
@@ -48,7 +45,7 @@ export function useTemperatureData() {
         if (!row.obs_timestamp || row.air_temperature === null) return;
         const temp = Number(row.air_temperature);
         if (isNaN(temp)) return;
-        const dayKey = new Date(row.obs_timestamp).toISOString().substring(0, 10);
+        const dayKey = wallDay(row.obs_timestamp);
         const existing = dailyMap.get(dayKey);
         if (!existing) {
           dailyMap.set(dayKey, { min: temp, max: temp });
